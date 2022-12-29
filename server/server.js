@@ -16,8 +16,20 @@ const JWT_SECRET = Buffer.from('Zn8Q5tyZ/G1MHltc4F/gTkVJMlrbKiZt', 'base64');
 const typeDefs =  gql(fs.readFileSync('./schema.graphql', { encoding: 'utf8'}))
 
 async function startApolloServer(typeDefs, resolvers) {
-  const server = new ApolloServer({typeDefs, resolvers});
+  const context =  async ({req}) => {
+    if(req.auth) {
+     const user = await User.findById(req.auth.sub);
+     return { user };
+    }
+    return {};
+  }
+  const server = new ApolloServer({typeDefs, resolvers, context});
 const app = express();
+app.use(cors(), express.json(), expressjwt({
+  algorithms: ['HS256'],
+  credentialsRequired: false,
+  secret: JWT_SECRET,
+}));
 await server.start();
 /* At this point we need to plug apollo server into our express application.
 The way to do this is to call the applyMiddleware like seen below.
@@ -28,11 +40,6 @@ HTTP request sent to /"graphql" will be routed by the Express framework to
 the ApolloServer middleware.*/
 server.applyMiddleware({app, path: '/graphql'});
 
-app.use(cors(), express.json(), expressjwt({
-  algorithms: ['HS256'],
-  credentialsRequired: false,
-  secret: JWT_SECRET,
-}));
 
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
