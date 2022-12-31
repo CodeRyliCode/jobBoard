@@ -1,12 +1,15 @@
-import { request, gql } from "graphql-request";
+import { ApolloClient, gql, InMemoryCache} from '@apollo/client';
 
 const GRAPHQL_URL = "http://localhost:9000/graphql";
 
-export async function getJob(id) {
-  const query = gql`
-    query JobQuery($id: ID!) {
-      job(id: $id) {
-        id
+export const client = new ApolloClient({
+  uri:  GRAPHQL_URL,
+  cache: new InMemoryCache(),
+})
+
+const JOB_DETAIL_FRAGMENT = gql`
+   fragment JobDetail on Job {
+       id
         title
         company {
           id
@@ -14,28 +17,31 @@ export async function getJob(id) {
         }
         description
       }
-    }
-  `;
-  const variables = { id };
-  const { job } = await request(GRAPHQL_URL, query, variables);
-  return job;
-}
+`;
 
-export async function createJob(input) {
-  const query = gql`
-    mutation createJobMutation($input: CreateJobInput!) {
-      job: createJob(input: $input) {
+export const JOB_QUERY = gql`
+    query JobQuery($id: ID!) {
+      job(id: $id) {
+ ...JobDetail
+      }
+    }
+    ${JOB_DETAIL_FRAGMENT}
+  `;
+
+export const JOBS_QUERY = gql`
+    query JobsQuery {
+      jobs {
         id
+        title
+        company {
+          id
+          name
+        }
       }
     }
   `;
-  const variables = { input };
-  const { job } = await request(GRAPHQL_URL, query, variables);
-  return job;
-}
 
-export async function getCompany(id) {
-  const query = gql`
+export const COMPANY_QUERY = gql`
     query CompanyQuery($id: ID!) {
       company(id: $id) {
         id
@@ -48,23 +54,19 @@ export async function getCompany(id) {
       }
     }
   `;
-  const variables = { id };
-  const { company } = await request(GRAPHQL_URL, query, variables);
-  return company;
-}
 
-export async function getJobs() {
-  const query = gql`
-    query {
-      jobs {
-        id
-        title
-        company {
-          name
-        }
-      }
-    }
-  `;
-  const { jobs } = await request(GRAPHQL_URL, query);
-  return jobs;
+export const CREATE_JOB_MUTATION = gql`
+mutation createJobMutation($input: CreateJobInput!) {
+  job: createJob(input: $input) {
+# Let's request all the same fields we get in the JobQuery, since the createJobMutation
+# also returns a result of type Job. This way whenever we execute the mutation, we'll
+# get all the job data we need to display on the next screen.
+...JobDetail
+  }
 }
+${JOB_DETAIL_FRAGMENT}
+`;
+
+
+
+

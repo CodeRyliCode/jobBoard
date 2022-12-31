@@ -1,17 +1,32 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { createJob } from '../graphql/queries';
+import { useCreateJob } from '../graphql/hooks';
 
 function JobForm() {
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  // const [mutate, { loading}] = useMutation(CREATE_JOB_MUTATION);
+  const { createJob, loading} = useCreateJob();
 
   const handleSubmit =  async (event) => {
     event.preventDefault();
-    const companyId = 'pVbRRBQtMVw6lUAkj1k43'; //FIXME
-    const job = await createJob({ title, companyId, description});
-    console.log('job created', job)
+    const job = await createJob(title, description);
+  //  const {data: { job }} = await mutate({ 
+  //   variables: { input: { title, description }},
+  //   context: {
+  //     headers: { 'Authorization': 'Bearer ' + getAccessToken() },
+  //   },
+  //   update: (cache, {data: {job} }) => {
+  //     cache.writeQuery ({
+  //       query: JOB_QUERY, 
+  //       variables: { id: job.id },
+  //       // This is the actual data object we want to write - jobs
+  //       data: { job },
+  //     }) 
+  //    },
+      
+  //   });
     navigate(`/jobs/${job.id}`);
   };
 
@@ -44,7 +59,7 @@ function JobForm() {
           </div>
           <div className="field">
             <div className="control">
-              <button className="button is-link" onClick={handleSubmit}>
+              <button className="button is-link" disabled={loading} onClick={handleSubmit}>
                 Submit
               </button>
             </div>
